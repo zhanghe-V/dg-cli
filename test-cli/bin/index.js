@@ -31,16 +31,25 @@ const lib = require('test-cli-lib');
 // }
 
 const yargs = require('yargs/yargs')
-const { hideBin } = require("yargs/helpers")
 const dedent = require("dedent")
+const pkg = require("../package.json")
 
-const argv = hideBin(process.argv)
-const cli = yargs(argv)
+const cli = yargs()
+const argv = process.argv.slice(2)
 
-yargs(argv)
+const context = {
+  testVersion: pkg.version,
+}
+
+cli
 .usage('Usage: test-cli [command] <options>') // 第一行输出使用说明
 .demandCommand(1, 'A command is required. Pass --help to see all available commands and options.')
 .strict() // 严格模式，未识别命令给出错误提示
+.recommendCommands() // 输入未识别错误命令给出提示
+.fail((err, msg) => { // 当输入未识别错误命令时个性化错误
+  console.log('err', err);
+  console.log('msg', msg);
+})
 .alias("h", "help") // 别名
 .alias("v", "version")
 .wrap(cli.terminalWidth()) // 终端左右宽度
@@ -69,4 +78,24 @@ yargs(argv)
 })
 .group(["help", "version"], "Global Options:") // 对命令参数进行分组
 .group(["loglevel"], "Lerna Options:")
-.argv
+// 命令(命令，说明，builder, handler)
+.command('init [name]', 'Do Init a project', (yargs) => {
+  yargs
+  .option('name', {
+    type: 'string',
+    describe: 'Name of a project',
+    alias: 'n'
+  })
+}, (argv) => {
+  console.log(argv)
+})
+.command({
+  command: "list",
+  aliases: ["ls", "la", "ll"],
+  describe: "List local packages",
+  builder: (yargs) => {},
+  handler: (argv) => {
+    console.log(argv);
+  },
+})
+.parse(argv, context) // 可以往argv中注入参数
